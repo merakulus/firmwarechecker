@@ -1,0 +1,103 @@
+import meraki
+import csv
+
+API_KEY = '5eb9154bbc58613ebdb48caf9f1e0337f8f125a4'
+# long API_KEY = '4bd6843811c025821b10dba9d23653193b9a9f07'
+#Merakulus API Key
+
+input_file = csv.DictReader(open("org_list.csv"), fieldnames='o')
+node_list =[]
+
+dashboard = meraki.DashboardAPI(
+        #api_key='$MERAKI_DASHBOARD_API_KEY',
+        api_key=API_KEY,
+        base_url='https://api-mp.meraki.com/api/v0/',
+        #log_file_prefix=os.path.basename(__file__)[:-3],
+        #log_path='',
+        print_console=False
+    )
+
+for line in input_file:
+     node_list.append(str(line['o']))
+    
+# ----------------------------------
+
+organizations = dashboard.organizations.getOrganizations()
+
+# Iterate through list of orgs
+for org in organizations:
+    print(f'\nAnalyzing organization {org["name"]}:')
+    org_id = org['id']
+
+    # Get list of networks in organization
+    try:
+        networks = dashboard.networks.getOrganizationNetworks(org_id)
+    except meraki.APIError as e:
+        print(f'Meraki API error: {e}')
+        continue
+    except Exception as e:
+        print(f'some other error: {e}')
+        continue
+    
+    
+    total = len(networks)
+    counter = 1
+    print(f'  - iterating through {total} networks in organization {org_id}')
+    for net in networks:
+        print(f'Found network {net["name"]} ({counter} of {total})')
+
+        try:
+            # Get list of clients on network, filtering on timespan of last 14 days
+            dev= dashboard.devices.getNetworkDevices(net['id'])
+            #clients = dashboard.clients.getNetworkClients(net['id'], timespan=60*60*24*14, perPage=1000, total_pages='all')
+            
+            qty = len(dev)
+            while (qty != 0):
+                qty -= 1
+                dev_name = dev[qty]['name']
+                dev_fw = dev[qty]['firmware']
+                print(f' Device Name: {dev[qty]["name"]})  Firmware: {dev[qty]["firmware"]}')
+    
+        
+
+                    #csv_writer = csv.DictWriter(output_file, field_names, delimiter=',', quotechar='"',
+                    #                               quoting=csv.QUOTE_ALL)
+                    #csv_writer.writeheader()
+                    #csv_writer.writerows(clients)
+                    #output_file.close()
+            #print(f'  - found {len(dev)}')
+
+            #counter += 1
+
+        # Stitch together one consolidated CSV per org
+        #output_file = open(f'{folder_name}.csv', mode='w', newline='\n')
+        #field_names = list(field_names)
+        #field_names.insert(0, 'Network Name')
+        #field_names.insert(1, 'Network ID')
+        #    for  key,value in dev:
+        #        print('---Device Found---')
+        #        field ={key: {'name': dev['name'], 'model': dev['model'], 'firmware': dev['firmware']} for dev in vale}
+        #        print(field)
+
+
+            #print('Device Model: ' + dev['model'] + ' Firmware: ' + dev['firmeware'])
+            #print('Device Name: ' +str(dev['model'] + "  Firmware: " + str(dev['firmware'])))
+           
+        except meraki.APIError as e:
+            print(f'Meraki API error: {e}')
+        except Exception as e:
+            print(f'some other error: {e}')
+             
+        counter += 1
+
+
+#my_org = dashboard.organizations.getOrganization()
+
+# Iterate through list of orgs
+#for org in organizations:
+#    print(f'\nAnalyzing organization {org["name"]}:')
+#    org_id = org['id']
+print('==============================================')
+
+
+
